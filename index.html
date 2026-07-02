@@ -79,13 +79,7 @@
     background:radial-gradient(circle at 35% 30%,var(--gold-hi),var(--gold) 60%,#9a6f00);border:2px solid #120c05;}
   .ends{display:flex;justify-content:space-between;font-size:.54rem;color:var(--dim);letter-spacing:.05em;margin:0 2px;}
 
-  .tabs{display:flex;gap:.4rem;padding:.5rem 1.2rem .2rem;align-items:center;}
-  .tabs button{background:transparent;border:1px solid var(--hair);color:var(--dim);border-radius:3px;
-    font-family:inherit;font-size:.56rem;letter-spacing:.16em;text-transform:uppercase;padding:.34rem .7rem;}
-  .tabs button.sel{color:var(--gold);border-color:var(--gold);background:rgba(245,179,1,.08);}
-  .tabs .rule{flex:1;height:1px;background:var(--hair);}
-
-  .pane{overflow-y:auto;flex:1;padding:.1rem 1.2rem;}
+  .pane{overflow-y:auto;flex:1;padding:.6rem 1.2rem .1rem;}
   .grid{display:flex;flex-wrap:wrap;gap:.5rem;align-content:flex-start;}
   .grid button{flex:1 1 auto;min-width:4.1rem;background:linear-gradient(180deg,var(--wood),var(--wood-lo));
     border:1px solid var(--hair);color:var(--cream);border-radius:4px;font-family:inherit;letter-spacing:.02em;
@@ -94,8 +88,6 @@
   .stations button:active{background:rgba(245,179,1,.12);}
   .stations button.here{color:var(--gold);border-color:var(--gold);text-shadow:0 0 8px rgba(245,179,1,.4);}
   .stations button.heard{color:var(--green);border-color:var(--green);box-shadow:0 0 10px rgba(58,166,90,.35);}
-  .fxboard button{min-width:5rem;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.9rem .3rem;color:var(--gold);}
-  .fxboard button:active{background:var(--red);color:#fff;border-color:var(--red);}
 
   .listen{margin:.35rem 1.1rem 0;}
   .listen button{width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;
@@ -170,15 +162,8 @@
     <div class="ends"><span id="endMin">70 Hz</span><span id="endMax">10 kHz</span></div>
   </div>
 
-  <div class="tabs" id="tabs">
-    <button data-tab="bands" class="sel">Bands</button>
-    <button data-tab="fx">Soundboard</button>
-    <span class="rule"></span>
-  </div>
-
   <div class="pane">
     <div class="grid stations" id="stations"></div>
-    <div class="grid fxboard" id="fxboard" style="display:none"></div>
   </div>
 
   <div class="listen">
@@ -223,18 +208,14 @@
                 return (Number.isInteger(f)?f:f.toFixed(1)).toString(); };
 
   // ---- audio graph ----
-  let ctx,osc,gain,analyser,data,micStream,micSrc,micAn,mData,fxBus,fxComp,_noise;
+  let ctx,osc,gain,analyser,data,micStream,micSrc,micAn,mData;
   function ensureCtx(){
     if(ctx)return;
     ctx=new (window.AudioContext||window.webkitAudioContext)();
     gain=ctx.createGain(); gain.gain.value=0;
     analyser=ctx.createAnalyser(); analyser.fftSize=2048; data=new Float32Array(analyser.fftSize);
     gain.connect(ctx.destination);
-    fxComp=ctx.createDynamicsCompressor();   // safety limiter for FX bus
-    fxBus=ctx.createGain(); fxBus.gain.value=0.9; fxBus.connect(fxComp); fxComp.connect(ctx.destination);
   }
-  function noise(){ if(_noise)return _noise; const n=ctx.sampleRate; const b=ctx.createBuffer(1,n,ctx.sampleRate);
-    const d=b.getChannelData(0); for(let i=0;i<n;i++)d[i]=Math.random()*2-1; _noise=b; return _noise; }
 
   function startTone(){
     ensureCtx(); if(ctx.state==='suspended')ctx.resume();
@@ -283,7 +264,7 @@
         unitEl=document.getElementById('unit'),playBtn=document.getElementById('play'),
         stateEl=document.getElementById('state'),vol=document.getElementById('vol'),
         volVal=document.getElementById('volVal'),stationsEl=document.getElementById('stations'),
-        fxboard=document.getElementById('fxboard'),endMin=document.getElementById('endMin'),
+        endMin=document.getElementById('endMin'),
         endMax=document.getElementById('endMax'),listenBtn=document.getElementById('listenBtn'),
         listenLabel=document.getElementById('listenLabel'),sweepBtn=document.getElementById('sweepBtn'),
         speed=document.getElementById('speed'),speedVal=document.getElementById('speedVal');
@@ -334,59 +315,6 @@
     endMin.textContent=min<1000?min+' Hz':(min/1000)+' kHz';
     endMax.textContent=max<1000?max+' Hz':(max/1000)+' kHz';
     buildStations(); freq=clampF(freq); render(); }
-
-  // ---- soundboard (all synthesised) ----
-  function eg(node,peak,a,d,dest){ const t=ctx.currentTime,g=ctx.createGain();
-    g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(peak,t+a);
-    g.gain.exponentialRampToValueAtTime(0.0001,t+a+d); node.connect(g); g.connect(dest||fxBus); return g; }
-
-  const FX={
-    Airhorn(){ const t=ctx.currentTime,dur=1.25;
-      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3800;
-      const out=ctx.createGain(); out.gain.setValueAtTime(0.0001,t); out.gain.linearRampToValueAtTime(0.5,t+0.03);
-      out.gain.setValueAtTime(0.5,t+dur-0.25); out.gain.exponentialRampToValueAtTime(0.001,t+dur);
-      lp.connect(out); out.connect(fxBus);
-      [277,415,554].forEach(f=>[0,-7,7].forEach(det=>{ const o=ctx.createOscillator(); o.type='sawtooth'; o.detune.value=det;
-        o.frequency.setValueAtTime(f*0.93,t); o.frequency.exponentialRampToValueAtTime(f,t+0.13);
-        o.connect(lp); o.start(t); o.stop(t+dur+0.05); }));
-      const lfo=ctx.createOscillator(),la=ctx.createGain(); lfo.frequency.value=5.5; la.gain.value=180;
-      lfo.connect(la); la.connect(lp.detune); lfo.start(t); lfo.stop(t+dur); },
-    Siren(){ const t=ctx.currentTime,dur=2.4; const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=1000;
-      const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2600;
-      const out=ctx.createGain(); out.gain.setValueAtTime(0.0001,t); out.gain.linearRampToValueAtTime(0.28,t+0.05);
-      out.gain.setValueAtTime(0.28,t+dur-0.25); out.gain.exponentialRampToValueAtTime(0.001,t+dur);
-      o.connect(lp); lp.connect(out); out.connect(fxBus);
-      const lfo=ctx.createOscillator(),la=ctx.createGain(); lfo.type='sine'; lfo.frequency.value=1.9; la.gain.value=420;
-      lfo.connect(la); la.connect(o.frequency); o.start(t); o.stop(t+dur); lfo.start(t); lfo.stop(t+dur); },
-    Laser(){ const t=ctx.currentTime,dur=0.35; const o=ctx.createOscillator(); o.type='square';
-      o.frequency.setValueAtTime(280,t); o.frequency.exponentialRampToValueAtTime(3200,t+dur);
-      eg(o,0.3,0.005,dur); o.start(t); o.stop(t+dur+0.02); },
-    ['Pull up'](){ const t=ctx.currentTime,dur=1.6;
-      const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(2000,t+dur);
-      const og=ctx.createGain(); og.gain.setValueAtTime(0.0001,t); og.gain.exponentialRampToValueAtTime(0.25,t+dur); og.gain.exponentialRampToValueAtTime(0.001,t+dur+0.15);
-      o.connect(og); og.connect(fxBus); o.start(t); o.stop(t+dur+0.2);
-      const s=ctx.createBufferSource(); s.buffer=noise(); s.loop=true;
-      const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=1.2; bp.frequency.setValueAtTime(400,t); bp.frequency.exponentialRampToValueAtTime(6000,t+dur);
-      const ng=ctx.createGain(); ng.gain.setValueAtTime(0.0001,t); ng.gain.exponentialRampToValueAtTime(0.2,t+dur); ng.gain.exponentialRampToValueAtTime(0.001,t+dur+0.15);
-      s.connect(bp); bp.connect(ng); ng.connect(fxBus); s.start(t); s.stop(t+dur+0.2); },
-    Bomb(){ const t=ctx.currentTime,dur=1.1; const o=ctx.createOscillator(); o.type='sine';
-      o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(28,t+dur);
-      const out=ctx.createGain(); out.gain.setValueAtTime(0.0001,t); out.gain.linearRampToValueAtTime(0.9,t+0.02); out.gain.exponentialRampToValueAtTime(0.001,t+dur);
-      o.connect(out); out.connect(fxBus); o.start(t); o.stop(t+dur+0.02);
-      const c=ctx.createOscillator(); c.type='square'; c.frequency.value=800; eg(c,0.3,0.002,0.05); c.start(t); c.stop(t+0.06); },
-    Rise(){ const t=ctx.currentTime,dur=2.2; const s=ctx.createBufferSource(); s.buffer=noise(); s.loop=true;
-      const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.setValueAtTime(300,t); hp.frequency.exponentialRampToValueAtTime(8000,t+dur);
-      const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.25,t+dur*0.9); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
-      s.connect(hp); hp.connect(g); g.connect(fxBus); s.start(t); s.stop(t+dur+0.02); },
-    Brraap(){ const t0=ctx.currentTime; for(let i=0;i<5;i++){ const t=t0+i*0.09;
-      const s=ctx.createBufferSource(); s.buffer=noise();
-      const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1200; bp.Q.value=0.8;
-      const g=ctx.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.linearRampToValueAtTime(0.4,t+0.005); g.gain.exponentialRampToValueAtTime(0.001,t+0.07);
-      s.connect(bp); bp.connect(g); g.connect(fxBus); s.start(t); s.stop(t+0.09); } }
-  };
-  function buildFX(){ fxboard.innerHTML='';
-    Object.keys(FX).forEach(name=>{ const b=document.createElement('button'); b.textContent=name;
-      b.onclick=()=>{ ensureCtx(); if(ctx.state==='suspended')ctx.resume(); FX[name](); }; fxboard.appendChild(b); }); }
 
   // ---- render loop ----
   const cv=document.getElementById('scope'),g=cv.getContext('2d');
@@ -463,15 +391,12 @@
 
   document.getElementById('rangeToggle').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
     document.querySelectorAll('#rangeToggle button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); setRange(+b.dataset.min,+b.dataset.max); });
-  document.getElementById('tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return;
-    document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('sel')); b.classList.add('sel');
-    const fx=b.dataset.tab==='fx'; stationsEl.style.display=fx?'none':'flex'; fxboard.style.display=fx?'flex':'none'; });
 
   playBtn.onclick=()=>playing?stopTone():startTone();
   listenBtn.onclick=()=>listening?stopListen():startListen();
   sweepBtn.onclick=()=>sweeping?cancelSweep():startSweep();
 
-  buildFX(); setRange(70,10000); setState(); setListenUI(); drawBase();
+  setRange(70,10000); setState(); setListenUI(); drawBase();
 })();
 </script>
 <script>if('serviceWorker' in navigator){addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}</script>

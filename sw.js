@@ -1,5 +1,5 @@
 // Simple offline cache. Bump VERSION to force clients to update.
-const VERSION = 'ffff-v1';
+const VERSION = 'ffff-v2';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png',

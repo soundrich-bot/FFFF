@@ -14,8 +14,6 @@ no build step, no dependencies, works offline as an installable PWA.
   to freeze on the ringing frequency.
 - **Listen** — mic input, live log-spectrum, and dominant-peak detection (with
   nearest note and the matching band); tap the reading to load it into the tone.
-- **Soundboard** — sound-system FX synthesised in Web Audio (airhorn, siren,
-  laser, pull-up, bomb, rise, brraap). No third-party samples.
 
 ## Run locally
 
@@ -43,12 +41,10 @@ installable to the home screen.
 
 ## Known limits
 
-- Phone speakers reproduce nothing below ~500 Hz — the low end and the Bomb FX
-  are for the PA, not the handset.
+- Phone speakers reproduce nothing below ~500 Hz — the low end is for the PA,
+  not the handset.
 - The mic is uncalibrated and iOS voice-processes; treat Listen as "which band
   is ringing", not a measurement. Constraints request EC/NS/AGC off.
-- The soundboard FX are oscillator sketches "in the style of", not recreations
-  of any specific sample.
 
 ## Roadmap
 
