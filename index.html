@@ -109,7 +109,7 @@
   .vol input{flex:1;}
   .vol .v-val{font-size:.58rem;color:var(--dim);width:2.6em;text-align:right;font-variant-numeric:tabular-nums;}
 
-  .transport{display:flex;gap:.5rem;padding:.35rem 1.1rem .9rem;}
+  .transport{display:flex;gap:.5rem;padding:.35rem 1.1rem .55rem;}
   .transport button{flex:1;background:linear-gradient(180deg,var(--wood),var(--wood-lo));border:1px solid var(--hair);
     color:var(--cream);border-radius:6px;font-family:inherit;font-size:.92rem;padding:.9rem 0;letter-spacing:.02em;
     box-shadow:inset 0 1px 0 rgba(255,220,120,.07);}
@@ -118,6 +118,10 @@
   .transport .play{flex:1.5;background:linear-gradient(180deg,var(--gold-hi),var(--gold));color:#2a1c00;border-color:var(--gold);
     font-weight:800;letter-spacing:.14em;text-shadow:0 1px 0 rgba(255,255,255,.25);}
   .transport .play.on{background:linear-gradient(180deg,#e8543f,var(--red));color:#fff;border-color:var(--red);text-shadow:0 1px 0 rgba(0,0,0,.3);}
+
+  .credit{text-align:center;font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--dim);padding:0 1rem .6rem;}
+  .credit a{color:var(--gold);text-decoration:none;border-bottom:1px solid var(--hair);padding-bottom:1px;}
+  .credit a:active{color:var(--gold-hi);}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;}}
 </style>
 </head>
@@ -191,6 +195,8 @@
     <button id="nudge-up" aria-label="up 10 cents">+</button>
     <button class="mini" id="oct-up" aria-label="up one octave">×2</button>
   </div>
+
+  <div class="credit">Built by <a href="https://www.soundrich.co/software" target="_blank" rel="noopener noreferrer">Soundrich</a></div>
 
 <script>
 (() => {
